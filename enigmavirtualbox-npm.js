@@ -44,54 +44,6 @@ var request       = require("request");
 var chalk         = require("chalk");
 var rimraf        = require("rimraf");
 
-/*  return download URL for latest PrinceXML distribution  */
-var downloadURL = function () {
-    return "http://enigmaprotector.com/assets/files/enigmavb.exe";
-};
-
-/*  download data from URL  */
-var downloadData = function (url) {
-    return new promise(function (resolve, reject) {
-        console.log("-- download: " + url);
-        var options = {
-            method: "GET",
-            url: url,
-            encoding: null,
-            headers: {
-                "User-Agent": "node-enigmavirtualbox (enigmavirtualbox-npm.js:install)"
-            }
-        };
-        if (typeof process.env.http_proxy === "string" && process.env.http_proxy !== "")
-            options.proxy = process.env.http_proxy;
-        var req = request(options, function (error, response, body) {
-            if (!error && response.statusCode === 200) {
-                console.log("-- download: " + body.length + " bytes received.");
-                resolve(body);
-            }
-            else
-                reject("download failed: " + error);
-        });
-        var progress_bar = null;
-        req.on("response", function (response) {
-            var len = parseInt(response.headers["content-length"], 10);
-            progress_bar = new progress(
-                "-- download: " +
-                "[" + chalk.blue(":bar") + "] " +
-                chalk.blue(":percent") +
-                " (ETA: " + chalk.blue(":eta") + "s)", {
-                complete:   "#",
-                incomplete: "=",
-                width:      40,
-                total:      len
-            });
-        });
-        req.on("data", function (data) {
-            if (progress_bar !== null)
-                progress_bar.tick(data.length);
-        });
-    });
-};
-
 /*  main procedure  */
 if (process.platform !== "win32") {
     console.log("WARNING: Enigma Virtual Box is available for Windows platform only! (this module will be void on your platform)");
@@ -105,31 +57,25 @@ var destdir;
 if (process.argv[2] === "install") {
     /*  installation procedure  */
     console.log("++ downloading Enigma Virtual Box distribution");
-    var url = downloadURL();
-    downloadData(url).then(function (data) {
-        console.log("++ locally unpacking Enigma Virtual Box distribution (please be patient)");
-        destdir = path.join(__dirname, "enigmavb");
-        var destfile = path.join(__dirname, "enigmavb.exe");
-        fs.writeFileSync(destfile, data, { encoding: null });
-        var args = [
-            "/SILENT",
-            "/VERYSILENT",
-            "/SP-",
-            "/SUPPRESSMSGBOXES",
-            "/NORESTART",
-            "/NOICONS",
-            "/DIR=" + path.resolve(destdir) + ""
-        ];
-        child_process.execFile(destfile, args, function (error /*, stdout, stderr */) {
-            if (error)
-                console.log(chalk.red("** ERROR: failed to extract: " + error));
-            else {
-                fs.unlinkSync(destfile);
-                console.log("-- OK: local Enigma Virtual Box installation now available");
-            }
-        });
-    }, function (error) {
-        console.log(chalk.red("** ERROR: failed to download: " + error));
+    console.log("++ locally unpacking Enigma Virtual Box distribution (please be patient)");
+    destdir = path.join(__dirname, "enigmavb");
+    var destfile = path.join(__dirname, "enigmavb.exe");
+    var args = [
+        "/SILENT",
+        "/VERYSILENT",
+        "/SP-",
+        "/SUPPRESSMSGBOXES",
+        "/NORESTART",
+        "/NOICONS",
+        "/DIR=" + path.resolve(destdir) + ""
+    ];
+    child_process.execFile(destfile, args, function (error /*, stdout, stderr */) {
+        if (error)
+            console.log(chalk.red("** ERROR: failed to extract: " + error));
+        else {
+            fs.unlinkSync(destfile);
+            console.log("-- OK: local Enigma Virtual Box installation now available");
+        }
     });
 }
 else if (process.argv[2] === "uninstall") {
